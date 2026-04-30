@@ -1,0 +1,44 @@
+[project]
+name = "doc2speech"
+version = "0.1.0"
+description = "Convert text/markdown documents to speech via Kokoro TTS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.3",
+    "kokoro-onnx>=0.5.0",
+    "markdown-it-py>=4.0.0",
+    "rich>=15.0.0",
+    "soundfile>=0.13.1",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.3",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+]
+
+[project.scripts]
+doc2speech = "doc2speech.__main__:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/doc2speech"]
+
+[tool.basedpyright]
+typeCheckingMode = "recommended"
+pythonVersion = "3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
