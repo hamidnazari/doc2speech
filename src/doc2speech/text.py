@@ -3,6 +3,10 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from markdown_it.token import Token
 
 
 def load(source: str | None) -> str:
@@ -19,12 +23,11 @@ def strip_markdown(text: str) -> str:
     md = MarkdownIt()
     tokens = md.parse(text)
     plain = _render_tokens(tokens)
-    # Collapse excessive blank lines
     plain = re.sub(r"\n{3,}", "\n\n", plain)
     return plain.strip()
 
 
-def _render_tokens(tokens: list) -> str:  # type: ignore[type-arg]
+def _render_tokens(tokens: list[Token]) -> str:
     parts: list[str] = []
     for tok in tokens:
         if tok.type == "inline" and tok.children:
@@ -34,7 +37,11 @@ def _render_tokens(tokens: list) -> str:  # type: ignore[type-arg]
         elif tok.type == "softbreak":
             parts.append(" ")
         elif tok.type in {
-            "hardbreak", "paragraph_close", "heading_close", "bullet_list_close", "hr"
+            "hardbreak",
+            "paragraph_close",
+            "heading_close",
+            "bullet_list_close",
+            "hr",
         }:
             parts.append("\n")
     return "".join(parts)

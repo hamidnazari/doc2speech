@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+
     import numpy as np
 
 # Model is downloaded once to ~/.cache/kokoro on first use
@@ -26,7 +27,7 @@ def ensure_model() -> tuple[Path, Path]:
     }
     for dest, url in files.items():
         if not dest.exists():
-            urllib.request.urlretrieve(url, dest)
+            _ = urllib.request.urlretrieve(url, dest)
 
     return _MODEL_PATH, _VOICES_PATH
 
