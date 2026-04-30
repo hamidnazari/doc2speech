@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
     import numpy as np
 
 # Model is downloaded once to ~/.cache/kokoro on first use
@@ -28,6 +29,18 @@ def ensure_model() -> tuple[Path, Path]:
             urllib.request.urlretrieve(url, dest)
 
     return _MODEL_PATH, _VOICES_PATH
+
+
+async def synthesise_stream(
+    text: str, voice: str = "af_heart", speed: float = 1.0
+) -> AsyncGenerator[tuple[np.ndarray, int], None]:
+    """Yield (chunk, sample_rate) as each phoneme batch is synthesised."""
+    from kokoro_onnx import Kokoro
+
+    model_path, voices_path = ensure_model()
+    kokoro = Kokoro(str(model_path), str(voices_path))
+    async for chunk, sr in kokoro.create_stream(text, voice=voice, speed=speed, lang="en-us"):
+        yield chunk, sr
 
 
 def synthesise(text: str, voice: str = "af_heart", speed: float = 1.0) -> np.ndarray:

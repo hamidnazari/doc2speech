@@ -4,27 +4,17 @@ default:
 # Install doc2speech as a global uv tool
 [group('run')]
 install:
-    uv tool install .
-
-# Convert a file to speech (writes WAV to stdout)
-[group('run')]
-speak file voice="af_heart" speed="1.0":
-    uv run doc2speech "{{file}}" --voice "{{voice}}" --speed "{{speed}}"
+    uv tool install . --force
 
 # Convert a file to a WAV output file
 [group('run')]
-speak-file file output voice="af_heart" speed="1.0":
+speak file output voice="af_heart" speed="1.0":
     uv run doc2speech "{{file}}" -o "{{output}}" --voice "{{voice}}" --speed "{{speed}}"
 
-# Play a file via afplay (macOS)
+# Stream a file to ffplay (starts playing before synthesis completes)
 [group('run')]
 play file voice="af_heart" speed="1.0":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    tmp=$(mktemp /tmp/doc2speech.XXXXXX.wav)
-    trap "rm -f \"$tmp\"" EXIT
-    uv run doc2speech "{{file}}" --voice "{{voice}}" --speed "{{speed}}" -o "$tmp"
-    afplay "$tmp"
+    uv run doc2speech "{{file}}" --play --voice "{{voice}}" --speed "{{speed}}"
 
 # Run the test suite
 [group('dev')]
