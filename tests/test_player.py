@@ -5,7 +5,7 @@ import threading
 import numpy as np
 import pytest
 
-from doc2speech.__main__ import _Player
+from doc2speech.__main__ import _Player  # pyright: ignore[reportPrivateUsage]
 
 SEEK = 100
 
@@ -16,6 +16,12 @@ def _make(samples: list[int]) -> _Player:
     for i, n in enumerate(samples):
         p.push(np.full(n, float(i), dtype="float32"))
     return p
+
+
+def _all(arr: np.ndarray, val: float) -> bool:
+    """Check every element equals val without touching np.all (stubs return Any)."""
+    flat: list[float] = arr.flatten().tolist()
+    return flat == [val] * len(flat)
 
 
 # ---------------------------------------------------------------------------
@@ -46,14 +52,14 @@ def test_total_multiple_chunks() -> None:
 def test_read_full_single_chunk() -> None:
     p = _make([8])
     out = p.read(0, 8)
-    assert np.all(out == 0.0)
+    assert _all(out, 0.0)
 
 
 def test_read_partial_start() -> None:
     p = _make([10])
     out = p.read(3, 4)
     assert len(out) == 4
-    assert np.all(out == 0.0)
+    assert _all(out, 0.0)
 
 
 def test_read_across_chunk_boundary() -> None:
@@ -61,20 +67,20 @@ def test_read_across_chunk_boundary() -> None:
     p.push(np.ones(5, dtype="float32"))
     p.push(np.full(5, 2.0, dtype="float32"))
     out = p.read(3, 6)
-    assert list(out) == [1.0, 1.0, 2.0, 2.0, 2.0, 2.0]
+    assert out.tolist() == [1.0, 1.0, 2.0, 2.0, 2.0, 2.0]
 
 
 def test_read_past_end_zero_pads() -> None:
     p = _make([5])
     out = p.read(3, 10)
     assert len(out) == 10
-    assert np.all(out[5:] == 0.0)
+    assert _all(out[5:], 0.0)
 
 
 def test_read_entirely_before_start_returns_zeros() -> None:
     p = _make([5])
     out = p.read(10, 4)
-    assert np.all(out == 0.0)
+    assert _all(out, 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +130,7 @@ def test_callback_outputs_audio() -> None:
     p.push(np.ones(64, dtype="float32"))
     out = _outdata(16)
     p.callback(out, 16, None, None)
-    assert np.all(out[:, 0] == 1.0)
+    assert _all(out[:, 0], 1.0)
     assert p.playhead == 16
 
 
@@ -135,7 +141,7 @@ def test_callback_paused_outputs_silence() -> None:
     out = _outdata(16)
     out[:] = 9.0
     p.callback(out, 16, None, None)
-    assert np.all(out == 0.0)
+    assert _all(out, 0.0)
     assert p.playhead == 0  # playhead must not advance while paused
 
 
@@ -155,7 +161,7 @@ def test_callback_underrun_outputs_silence() -> None:
     out = _outdata(16)
     out[:] = 9.0
     p.callback(out, 16, None, None)
-    assert np.all(out == 0.0)
+    assert _all(out, 0.0)
     assert p.playhead == 0
 
 
@@ -211,7 +217,7 @@ def test_push_concurrent_with_read() -> None:
     def reader() -> None:
         try:
             for i in range(50):
-                p.read(i * 10, 32)
+                _ = p.read(i * 10, 32)
         except Exception as exc:
             errors.append(exc)
 

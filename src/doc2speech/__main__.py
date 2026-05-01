@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import sys
+import threading
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
+
+if TYPE_CHECKING:
+    import numpy as np
 
 console = Console(stderr=True)
 
@@ -86,66 +91,74 @@ def cli(
 class _Player:
     """Buffers synthesised audio and serves it frame-by-frame to a sounddevice callback."""
 
-    def __init__(self, seek_samples: int) -> None:
-        import threading
+    seek_samples: int
+    chunks: list[np.ndarray]
+    lock: threading.Lock
+    synthesis_done: threading.Event
+    paused: threading.Event
+    stopped: threading.Event
+    playhead: int
 
+    def __init__(self, seek_samples: int) -> None:
         self.seek_samples = seek_samples
-        self.chunks: list[object] = []  # list[np.ndarray]
+        self.chunks = []
         self.lock = threading.Lock()
         self.synthesis_done = threading.Event()
         self.paused = threading.Event()
         self.stopped = threading.Event()
         self.playhead = 0
 
-    def push(self, chunk: object) -> None:
-        import numpy as np
-
+    def push(self, chunk: np.ndarray) -> None:
         with self.lock:
-            self.chunks.append(chunk.astype("float32"))  # type: ignore[union-attr]
+            self.chunks.append(chunk.astype("float32"))
 
     def total(self) -> int:
         with self.lock:
-            return sum(len(c) for c in self.chunks)  # type: ignore[arg-type]
+            return sum(len(c) for c in self.chunks)
 
-    def read(self, start: int, n: int) -> object:
+    def read(self, start: int, n: int) -> np.ndarray:
         import numpy as np
 
         out = np.zeros(n, dtype="float32")
         written = pos = 0
         with self.lock:
             for chunk in self.chunks:
-                end = pos + len(chunk)  # type: ignore[arg-type]
+                end = pos + len(chunk)
                 if end <= start:
                     pos = end
                     continue
                 src = max(0, start - pos)
-                take = min(len(chunk) - src, n - written)  # type: ignore[arg-type]
-                out[written : written + take] = chunk[src : src + take]  # type: ignore[index]
+                take = min(len(chunk) - src, n - written)
+                out[written : written + take] = chunk[src : src + take]
                 written += take
                 pos = end
                 if written >= n:
                     break
         return out
 
-    def callback(self, outdata: object, frames: int, _time: object, _status: object) -> None:
+    def callback(
+        self,
+        outdata: np.ndarray,
+        frames: int,
+        _time: object,
+        _status: object,
+    ) -> None:
         import sounddevice as sd
-        import numpy as np
 
-        outdata = outdata  # type: ignore[assignment]
         if self.stopped.is_set():
-            outdata[:] = 0  # type: ignore[index]
+            outdata[:] = 0
             raise sd.CallbackStop()
         if self.paused.is_set():
-            outdata[:] = 0  # type: ignore[index]
+            outdata[:] = 0
             return
         total = self.total()
         if self.playhead >= total:
             if self.synthesis_done.is_set():
-                outdata[:] = 0  # type: ignore[index]
+                outdata[:] = 0
                 raise sd.CallbackStop()
-            outdata[:] = 0  # type: ignore[index]  # underrun — synthesis hasn't caught up yet
+            outdata[:] = 0  # underrun — synthesis hasn't caught up yet
             return
-        outdata[:, 0] = self.read(self.playhead, frames)  # type: ignore[index]
+        outdata[:, 0] = self.read(self.playhead, frames)
         self.playhead += frames
 
     def seek(self, delta: int) -> None:
@@ -155,7 +168,6 @@ class _Player:
 def _play_stream(text: str, voice: str, speed: float) -> None:
     import asyncio
     import termios
-    import threading
     import tty
 
     import sounddevice as sd
@@ -163,17 +175,18 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
     from doc2speech.synth import SAMPLE_RATE, synthesise_stream
 
     player = _Player(seek_samples=5 * SAMPLE_RATE)
+    done = threading.Event()
 
     def _raw_print(msg: str) -> None:
-        sys.stderr.write(f"\r{msg}\r\n")
-        sys.stderr.flush()
+        _ = sys.stderr.write(f"\r{msg}\r\n")
+        _ = sys.stderr.flush()
 
     def _keyreader() -> None:
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         try:
-            tty.setraw(fd)
-            while not player.stopped.is_set():
+            _ = tty.setraw(fd)
+            while not player.stopped.is_set() and not done.is_set():
                 ch = sys.stdin.read(1)
                 if ch == " ":
                     if player.paused.is_set():
@@ -212,7 +225,10 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
             player.synthesis_done.set()
 
         asyncio.run(run())
-        stream.wait()
+        # Poll until the callback raises CallbackStop (stream becomes inactive)
+        while stream.active:
+            _ = threading.Event().wait(0.05)
+        done.set()
 
 
 def _write_file(text: str, voice: str, speed: float, output_path: str) -> None:
