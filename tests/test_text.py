@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from doc2speech.text import load, strip_markdown
+from doc2speech.text import load, split_sentences, strip_markdown
 
 
 def test_strips_headings() -> None:
@@ -83,3 +83,48 @@ def test_load_none_reads_stdin(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("sys.stdin", io.StringIO("from none"))
     assert load(None) == "from none"
+
+
+# ---------------------------------------------------------------------------
+# split_sentences
+# ---------------------------------------------------------------------------
+
+
+def test_split_short_text_is_single_segment() -> None:
+    result = split_sentences("Hello world.")
+    assert result == ["Hello world."]
+
+
+def test_split_respects_max_chars() -> None:
+    long = ("The fox jumps. " * 30).strip()
+    segments = split_sentences(long, max_chars=100)
+    assert all(len(s) <= 100 for s in segments)
+    assert len(segments) > 1
+
+
+def test_split_preserves_all_content() -> None:
+    text = "First sentence. Second sentence! Third sentence?"
+    segments = split_sentences(text, max_chars=30)
+    joined = " ".join(segments)
+    assert "First sentence." in joined
+    assert "Second sentence!" in joined
+    assert "Third sentence?" in joined
+
+
+def test_split_empty_string_returns_empty() -> None:
+    assert split_sentences("") == []
+
+
+def test_split_single_long_sentence_is_not_split() -> None:
+    # A single sentence with no boundary can't be split; returned as-is
+    long = "a" * 500
+    result = split_sentences(long, max_chars=100)
+    assert result == [long]
+
+
+def test_split_aggregates_short_sentences() -> None:
+    text = "A. B. C. D."
+    result = split_sentences(text, max_chars=50)
+    # All four short sentences should be merged into one segment
+    assert len(result) == 1
+    assert result[0] == "A. B. C. D."

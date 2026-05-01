@@ -27,6 +27,24 @@ def strip_markdown(text: str) -> str:
     return plain.strip()
 
 
+def split_sentences(text: str, max_chars: int = 400) -> list[str]:
+    """Split text into segments no longer than max_chars, breaking on sentence boundaries."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    segments: list[str] = []
+    buf = ""
+    for sent in sentences:
+        if not sent:
+            continue
+        if buf and len(buf) + 1 + len(sent) > max_chars:
+            segments.append(buf)
+            buf = sent
+        else:
+            buf = f"{buf} {sent}".strip() if buf else sent
+    if buf:
+        segments.append(buf)
+    return segments
+
+
 def _render_tokens(tokens: list[Token]) -> str:
     parts: list[str] = []
     for tok in tokens:
