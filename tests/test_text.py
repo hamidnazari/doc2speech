@@ -144,3 +144,18 @@ def test_split_aggregates_short_sentences() -> None:
     # All four short sentences should be merged into one segment
     assert len(result) == 1
     assert result[0] == "A. B. C. D."
+
+
+def test_split_heading_separated_from_paragraph() -> None:
+    # Heading and following paragraph must be in separate segments
+    text = "Introduction\n\nThis is the first paragraph."
+    result = split_sentences(text, max_chars=300)
+    assert result[0] == "Introduction"
+    assert result[1] == "This is the first paragraph."
+
+
+def test_strip_markdown_heading_becomes_separate_paragraph() -> None:
+    # strip_markdown must emit a blank line after headings so split_sentences
+    # sees them as separate paragraphs
+    result = strip_markdown("# My Heading\n\nSome content here.")
+    assert "My Heading\n\nSome content" in result

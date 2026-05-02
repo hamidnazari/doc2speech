@@ -28,8 +28,19 @@ def strip_markdown(text: str) -> str:
 
 
 def split_sentences(text: str, max_chars: int = 300) -> list[str]:
-    """Split text into segments ≤ max_chars, breaking on sentence then word boundaries."""
-    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    """Split text into segments ≤ max_chars, honouring paragraph breaks first."""
+    result: list[str] = []
+    for para in re.split(r"\n{2,}", text.strip()):
+        para = para.strip()
+        if not para:
+            continue
+        result.extend(_split_para(para, max_chars))
+    return result
+
+
+def _split_para(text: str, max_chars: int) -> list[str]:
+    """Split a single paragraph into segments ≤ max_chars on sentence then word boundaries."""
+    sentences = re.split(r"(?<=[.!?])\s+", text)
     segments: list[str] = []
     buf = ""
     for sent in sentences:
@@ -60,10 +71,11 @@ def _render_tokens(tokens: list[Token]) -> str:
             parts.append(tok.content)
         elif tok.type == "softbreak":
             parts.append(" ")
+        elif tok.type == "heading_close":
+            parts.append("\n\n")
         elif tok.type in {
             "hardbreak",
             "paragraph_close",
-            "heading_close",
             "bullet_list_close",
             "hr",
         }:
