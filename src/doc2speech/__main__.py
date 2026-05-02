@@ -221,6 +221,8 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
 
         async def run() -> None:
             async for chunk, _ in synthesise_stream(text, voice=voice, speed=speed):
+                if player.stopped.is_set():
+                    return
                 player.push(chunk)
             player.synthesis_done.set()
 
