@@ -115,11 +115,27 @@ def test_split_empty_string_returns_empty() -> None:
     assert split_sentences("") == []
 
 
-def test_split_single_long_sentence_is_not_split() -> None:
-    # A single sentence with no boundary can't be split; returned as-is
-    long = "a" * 500
+def test_split_single_long_sentence_splits_on_word_boundary() -> None:
+    # A single sentence exceeding max_chars must be split on word boundaries
+    long = " ".join(["word"] * 100)  # ~499 chars, no sentence punctuation
     result = split_sentences(long, max_chars=100)
-    assert result == [long]
+    assert all(len(s) <= 100 for s in result)
+    assert len(result) > 1
+
+
+def test_split_single_long_word_hard_cuts() -> None:
+    # A single token longer than max_chars falls back to a hard character cut
+    long = "a" * 200
+    result = split_sentences(long, max_chars=100)
+    assert all(len(s) <= 100 for s in result)
+    assert "".join(result) == long
+
+
+def test_split_default_max_chars_is_300() -> None:
+    # Default must stay at 300 to stay well under kokoro's 510-phoneme limit
+    text = ("Hello world. " * 25).strip()  # ~325 chars
+    result = split_sentences(text)
+    assert all(len(s) <= 300 for s in result)
 
 
 def test_split_aggregates_short_sentences() -> None:

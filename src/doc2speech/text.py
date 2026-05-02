@@ -27,8 +27,8 @@ def strip_markdown(text: str) -> str:
     return plain.strip()
 
 
-def split_sentences(text: str, max_chars: int = 400) -> list[str]:
-    """Split text into segments no longer than max_chars, breaking on sentence boundaries."""
+def split_sentences(text: str, max_chars: int = 300) -> list[str]:
+    """Split text into segments ≤ max_chars, breaking on sentence then word boundaries."""
     sentences = re.split(r"(?<=[.!?])\s+", text.strip())
     segments: list[str] = []
     buf = ""
@@ -40,6 +40,12 @@ def split_sentences(text: str, max_chars: int = 400) -> list[str]:
             buf = sent
         else:
             buf = f"{buf} {sent}".strip() if buf else sent
+        while len(buf) > max_chars:
+            cut = buf.rfind(" ", 0, max_chars)
+            if cut == -1:
+                cut = max_chars
+            segments.append(buf[:cut])
+            buf = buf[cut:].lstrip()
     if buf:
         segments.append(buf)
     return segments
