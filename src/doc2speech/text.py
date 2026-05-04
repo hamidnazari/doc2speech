@@ -27,7 +27,7 @@ def strip_markdown(text: str) -> str:
     return plain.strip()
 
 
-def split_sentences(text: str, max_chars: int = 300) -> list[str]:
+def split_sentences(text: str, max_chars: int = 200) -> list[str]:
     """Split text into segments ≤ max_chars, honouring paragraph breaks first."""
     result: list[str] = []
     for para in re.split(r"\n{2,}", text.strip()):

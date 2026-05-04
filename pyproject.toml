@@ -1,6 +1,6 @@
 [project]
 name = "doc2speech"
-version = "0.3.8"
+version = "0.3.9"
 description = "Convert text/markdown documents to speech via Kokoro TTS"
 readme = "README.md"
 requires-python = ">=3.12"

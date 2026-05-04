@@ -131,11 +131,11 @@ def test_split_single_long_word_hard_cuts() -> None:
     assert "".join(result) == long
 
 
-def test_split_default_max_chars_is_300() -> None:
-    # Default must stay at 300 to stay well under kokoro's 510-phoneme limit
+def test_split_default_max_chars_is_200() -> None:
+    # Default is 200 to stay well under kokoro's 510-phoneme limit
     text = ("Hello world. " * 25).strip()  # ~325 chars
     result = split_sentences(text)
-    assert all(len(s) <= 300 for s in result)
+    assert all(len(s) <= 200 for s in result)
 
 
 def test_split_aggregates_short_sentences() -> None:
