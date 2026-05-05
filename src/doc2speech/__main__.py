@@ -78,11 +78,12 @@ def cli(
         console.print("[red]Error:[/] no text to synthesise.")
         raise SystemExit(1)
 
-    console.print(f"[dim]{len(text)} chars → voice=[bold]{voice}[/] speed={speed}[/]")
-
     if output_path:
         _write_file(text, voice, speed, output_path)
     elif play or sys.stdout.isatty():
+        console.print(f"[dim]{len(text)} chars → voice=[bold]{voice}[/bold] speed={speed}[/dim]")
+        console.file.write("\033[0m")
+        console.file.flush()
         _play_stream(text, voice, speed)
     else:
         _write_stdout(text, voice, speed)
@@ -165,6 +166,26 @@ class _Player:
         self.playhead = max(0, min(self.playhead + delta, self.total()))
 
 
+def _fmt_time(samples: int, sample_rate: int) -> str:
+    secs = samples // sample_rate
+    return f"{secs // 60}:{secs % 60:02d}"
+
+
+def _render_bar(
+    playhead: int,
+    total: int,
+    synth_done: bool,
+    sample_rate: int,
+    width: int = 40,
+    action: str = "",
+) -> str:
+    filled = 0 if total == 0 else int(min(playhead / total, 1.0) * width)
+    bar = "█" * filled + ("░" * (width - filled))
+    total_str = _fmt_time(total, sample_rate) if synth_done else f"~{_fmt_time(total, sample_rate)}"
+    action_col = f"  {action:<6}" if action else " " * 8
+    return f"\033[0m\r{_fmt_time(playhead, sample_rate)} [{bar}] {total_str}{action_col}"
+
+
 def _play_stream(text: str, voice: str, speed: float) -> None:
     import asyncio
     import termios
@@ -176,10 +197,7 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
 
     player = _Player(seek_samples=5 * SAMPLE_RATE)
     done = threading.Event()
-
-    def _raw_print(msg: str) -> None:
-        _ = sys.stderr.write(f"\r{msg}\r\n")
-        _ = sys.stderr.flush()
+    _action: list[str] = [""]  # shared mutable cell for current action label
 
     def _keyreader() -> None:
         fd = sys.stdin.fileno()
@@ -191,33 +209,50 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
                 if ch == " ":
                     if player.paused.is_set():
                         player.paused.clear()
-                        _raw_print("▶ resumed")
+                        _action[0] = "▶"
                     else:
                         player.paused.set()
-                        _raw_print("⏸ paused")
+                        _action[0] = "⏸"
                 elif ch == "\x1b":
                     nxt = sys.stdin.read(1)
                     if nxt == "[":
                         arrow = sys.stdin.read(1)
                         if arrow == "C":  # →
                             player.seek(+player.seek_samples)
-                            _raw_print("⏩ +5s")
+                            _action[0] = "+5s"
                         elif arrow == "D":  # ←
                             player.seek(-player.seek_samples)
-                            _raw_print("⏪ -5s")
+                            _action[0] = "-5s"
                 elif ch in ("\x03", "\x04", "q"):
                     player.stopped.set()
                     break
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-    console.print("[dim]Playing… (space=pause/resume  ←/→=seek 5s  q=quit)[/]")
+    _ = sys.stderr.write("\033[0mPlaying… (space  ←/→=seek 5s  q=quit)\n\033[?25l")
+    _ = sys.stderr.flush()
+
+    def _progress_loop() -> None:
+        while not done.is_set():
+            action = _action[0]
+            synth_done = player.synthesis_done.is_set()
+            line = _render_bar(
+                player.playhead, player.total(), synth_done, SAMPLE_RATE, action=action
+            )
+            _ = sys.stderr.write(line)
+            _ = sys.stderr.flush()
+            _ = threading.Event().wait(0.1)
+        # Clear progress line and restore cursor
+        _ = sys.stderr.write("\r" + " " * 70 + "\r\033[?25h")
+        _ = sys.stderr.flush()
 
     with sd.OutputStream(
         samplerate=SAMPLE_RATE, channels=1, dtype="float32", callback=player.callback
     ) as stream:
         key_thread = threading.Thread(target=_keyreader, daemon=True)
         key_thread.start()
+        progress_thread = threading.Thread(target=_progress_loop, daemon=True)
+        progress_thread.start()
 
         async def run() -> None:
             async for chunk, _ in synthesise_stream(text, voice=voice, speed=speed):
