@@ -65,6 +65,27 @@ def test_strips_horizontal_rule() -> None:
     assert "---" not in result
 
 
+def test_load_file_not_found() -> None:
+    import click
+
+    with pytest.raises(click.BadParameter, match="File not found"):
+        _ = load("/nonexistent/path/file.md")
+
+
+def test_load_permission_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import click
+
+    f = tmp_path / "locked.txt"
+    _ = f.write_text("secret", encoding="utf-8")
+
+    def _raise(*_a: object, **_kw: object) -> str:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr("pathlib.Path.read_text", _raise)
+    with pytest.raises(click.BadParameter, match="Permission denied"):
+        _ = load(str(f))
+
+
 def test_load_from_file(tmp_path: Path) -> None:
     f = tmp_path / "sample.txt"
     _ = f.write_text("Hello from file", encoding="utf-8")

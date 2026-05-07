@@ -78,15 +78,27 @@ def cli(
         console.print("[red]Error:[/] no text to synthesise.")
         raise SystemExit(1)
 
-    if output_path:
-        _write_file(text, voice, speed, output_path)
-    elif play or sys.stdout.isatty():
-        console.print(f"[dim]{len(text)} chars → voice=[bold]{voice}[/bold] speed={speed}[/dim]")
-        console.file.write("\033[0m")
-        console.file.flush()
-        _play_stream(text, voice, speed)
-    else:
-        _write_stdout(text, voice, speed)
+    try:
+        if output_path:
+            _write_file(text, voice, speed, output_path)
+        elif play or sys.stdout.isatty():
+            console.print(
+                f"[dim]{len(text)} chars → voice=[bold]{voice}[/bold] speed={speed}[/dim]"
+            )
+            _ = console.file.write("\033[0m")
+            console.file.flush()
+            _play_stream(text, voice, speed)
+        else:
+            _write_stdout(text, voice, speed)
+    except click.ClickException:
+        raise
+    except ImportError as e:
+        console.print(f"[red]Missing dependency:[/] {e}")
+        console.print("[dim]Install with: uv tool install 'doc2speech[play]'[/dim]")
+        raise SystemExit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/] {e}")
+        raise SystemExit(1) from e
 
 
 class _Player:

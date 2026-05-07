@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import click
+
 if TYPE_CHECKING:
     from markdown_it.token import Token
 
@@ -13,7 +15,14 @@ def load(source: str | None) -> str:
     """Read text from a file path or stdin ('-')."""
     if source is None or source == "-":
         return sys.stdin.read()
-    return Path(source).read_text(encoding="utf-8")
+    try:
+        return Path(source).read_text(encoding="utf-8")
+    except FileNotFoundError as e:
+        raise click.BadParameter(f"File not found: {source}", param_hint="FILE") from e
+    except PermissionError as e:
+        raise click.BadParameter(f"Permission denied: {source}", param_hint="FILE") from e
+    except OSError as e:
+        raise click.BadParameter(str(e), param_hint="FILE") from e
 
 
 def strip_markdown(text: str) -> str:

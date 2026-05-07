@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import click
+
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
@@ -17,6 +19,7 @@ SAMPLE_RATE = 24_000
 
 def ensure_model() -> tuple[Path, Path]:
     """Download Kokoro model files if not already cached."""
+    import urllib.error
     import urllib.request
 
     _MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -27,7 +30,12 @@ def ensure_model() -> tuple[Path, Path]:
     }
     for dest, url in files.items():
         if not dest.exists():
-            _ = urllib.request.urlretrieve(url, dest)
+            try:
+                _ = urllib.request.urlretrieve(url, dest)
+            except urllib.error.URLError as e:
+                raise click.ClickException(f"Failed to download model: {e.reason}") from e
+            except OSError as e:
+                raise click.ClickException(f"Failed to save model to {dest}: {e}") from e
 
     return _MODEL_PATH, _VOICES_PATH
 
