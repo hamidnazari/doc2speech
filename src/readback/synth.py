@@ -42,7 +42,7 @@ def ensure_model() -> tuple[Path, Path]:
 
 async def synthesise_stream(
     text: str, voice: str = "af_heart", speed: float = 1.0
-) -> AsyncGenerator[tuple[np.ndarray, int], None]:
+) -> AsyncGenerator[tuple[np.ndarray, int]]:
     """Yield (chunk, sample_rate) as each phoneme batch is synthesised."""
     from kokoro_onnx import Kokoro
 

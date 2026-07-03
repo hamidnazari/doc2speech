@@ -21,7 +21,7 @@ uv tool install .
 uv run readback --help
 ```
 
-Requires Python ≥ 3.12. If you do not use [uv](https://docs.astral.sh/uv/), install with pipx or pip:
+Requires Python ≥ 3.13. If you do not use [uv](https://docs.astral.sh/uv/), install with pipx or pip:
 
 ```sh
 pipx install .

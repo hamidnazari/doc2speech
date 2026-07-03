@@ -1,16 +1,15 @@
 [project]
 name = "readback"
-version = "0.4.1"
+version = "0.4.2"
 description = "Convert text/markdown documents to speech via Kokoro TTS"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 keywords = ["markdown", "speech", "text-to-speech", "tts", "kokoro"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Text Processing :: Markup :: Markdown",
@@ -43,7 +42,7 @@ packages = ["src/readback"]
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 reportMissingTypeStubs = false
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
@@ -52,7 +51,7 @@ reportUnknownParameterType = false
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
