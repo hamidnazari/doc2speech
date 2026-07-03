@@ -113,4 +113,5 @@ def test_render_bar_width_respected() -> None:
 
 def test_render_bar_shows_speed() -> None:
     bar = render_bar(0, 60 * SR, True, SR, width=WIDTH, speed=1.25)
-    assert "1.25x" in bar
+    assert "1.2x" in bar
+    assert "xx" not in bar

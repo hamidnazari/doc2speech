@@ -115,6 +115,34 @@ class Player:
         return self.playback_speed
 
 
+def handle_key(player: Player, ch: str, read_key: object) -> str | None:
+    if ch == " ":
+        if player.paused.is_set():
+            player.paused.clear()
+            return "▶"
+        player.paused.set()
+        return "⏸"
+    if ch == "\x1b" and callable(read_key):
+        nxt = read_key()
+        if nxt == "[":
+            arrow = read_key()
+            if arrow == "C":
+                player.seek(+player.seek_samples)
+                return "+5s"
+            if arrow == "D":
+                player.seek(-player.seek_samples)
+                return "-5s"
+            if arrow == "A":
+                _ = player.change_speed(+0.1)
+                return "speed"
+            if arrow == "B":
+                _ = player.change_speed(-0.1)
+                return "speed"
+    if ch in ("\x03", "\x04", "q"):
+        player.stopped.set()
+    return None
+
+
 def _clamp_speed(speed: float) -> float:
     return max(MIN_SPEED, min(speed, MAX_SPEED))
 
@@ -137,7 +165,7 @@ def render_bar(
     bar = "█" * filled + ("░" * (width - filled))
     total_str = fmt_time(total, sample_rate) if synth_done else f"~{fmt_time(total, sample_rate)}"
     action_col = f"  {action:<6}" if action else " " * 8
-    speed_col = f" {speed:.2f}x" if speed is not None else ""
+    speed_col = f" {speed:.1f}x" if speed is not None else ""
     playhead_str = fmt_time(int(playhead), sample_rate)
     return f"\033[0m\r{playhead_str} [{bar}] {total_str}{action_col}{speed_col}"
 
@@ -164,34 +192,15 @@ def play_stream(text: str, voice: str, speed: float) -> None:
             _ = tty.setraw(fd)
             while not player.stopped.is_set() and not done.is_set():
                 ch = sys.stdin.read(1)
-                if ch == " ":
-                    if player.paused.is_set():
-                        player.paused.clear()
-                        action[0] = "▶"
-                    else:
-                        player.paused.set()
-                        action[0] = "⏸"
-                elif ch == "\x1b":
-                    nxt = sys.stdin.read(1)
-                    if nxt == "[":
-                        arrow = sys.stdin.read(1)
-                        if arrow == "C":
-                            player.seek(+player.seek_samples)
-                            action[0] = "+5s"
-                        elif arrow == "D":
-                            player.seek(-player.seek_samples)
-                            action[0] = "-5s"
-                elif ch in ("+", "="):
-                    action[0] = f"{player.change_speed(+0.1):.1f}x"
-                elif ch == "-":
-                    action[0] = f"{player.change_speed(-0.1):.1f}x"
-                elif ch in ("\x03", "\x04", "q"):
-                    player.stopped.set()
+                next_action = handle_key(player, ch, lambda: sys.stdin.read(1))
+                if next_action is not None:
+                    action[0] = next_action
+                if player.stopped.is_set():
                     break
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-    controls = "space  ←/→=seek 5s  +/-=speed  q=quit" if interactive else "controls disabled"
+    controls = "space  ←/→=seek 5s  ↑/↓=speed  q=quit" if interactive else "controls disabled"
     _ = sys.stderr.write(f"\033[0mPlaying… ({controls})\n\033[?25l")
     _ = sys.stderr.flush()
 

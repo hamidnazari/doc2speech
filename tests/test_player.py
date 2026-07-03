@@ -5,7 +5,7 @@ import threading
 import numpy as np
 import pytest
 
-from readback.playback import Player
+from readback.playback import Player, handle_key
 
 SEEK = 100
 
@@ -200,6 +200,16 @@ def test_change_speed_clamps() -> None:
     assert p.change_speed(-0.1) == 0.25
     p = Player(seek_samples=SEEK, playback_speed=4.0)
     assert p.change_speed(+0.1) == 4.0
+
+
+def test_arrow_up_down_change_speed() -> None:
+    p = Player(seek_samples=SEEK, playback_speed=1.0)
+    keys = iter(["[", "A"])
+    assert handle_key(p, "\x1b", lambda: next(keys)) == "speed"
+    assert p.playback_speed == 1.1
+    keys = iter(["[", "B"])
+    assert handle_key(p, "\x1b", lambda: next(keys)) == "speed"
+    assert p.playback_speed == 1.0
 
 
 # ---------------------------------------------------------------------------

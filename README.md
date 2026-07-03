@@ -52,8 +52,8 @@ readback [OPTIONS] [FILE]
 | `Space` | Pause / resume |
 | `→` | Seek forward 5 s |
 | `←` | Seek backward 5 s |
-| `+` / `=` | Speed up playback |
-| `-` | Slow down playback |
+| `↑` | Speed up playback |
+| `↓` | Slow down playback |
 | `q` / `Ctrl-C` | Quit |
 
 ## Configuration
