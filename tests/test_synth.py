@@ -29,15 +29,15 @@ def test_ensure_model_reuses_valid_cached_files(
     model_path, voices_path = model_files
     model_content = b"valid model"
     voices_content = b"valid voices"
-    model_path.write_bytes(model_content)
-    voices_path.write_bytes(voices_content)
+    _ = model_path.write_bytes(model_content)
+    _ = voices_path.write_bytes(voices_content)
     monkeypatch.setattr(synth, "_MODEL_SHA256", _sha256(model_content))
     monkeypatch.setattr(synth, "_VOICES_SHA256", _sha256(voices_content))
 
     def fail_download(url: str, filename: str | Path) -> None:
         raise AssertionError(f"unexpected download of {url} to {filename}")
 
-    monkeypatch.setattr(synth.urllib.request, "urlretrieve", fail_download)
+    monkeypatch.setattr("readback.synth.urllib.request.urlretrieve", fail_download)
 
     assert synth.ensure_model() == (model_path, voices_path)
 
@@ -46,9 +46,9 @@ def test_ensure_model_redownloads_corrupted_existing_file(
     monkeypatch: pytest.MonkeyPatch, model_files: tuple[Path, Path]
 ) -> None:
     model_path, voices_path = model_files
-    model_path.write_bytes(b"corrupt model")
+    _ = model_path.write_bytes(b"corrupt model")
     voices_content = b"valid voices"
-    voices_path.write_bytes(voices_content)
+    _ = voices_path.write_bytes(voices_content)
     replacement_content = b"replacement model"
     monkeypatch.setattr(synth, "_MODEL_SHA256", _sha256(replacement_content))
     monkeypatch.setattr(synth, "_VOICES_SHA256", _sha256(voices_content))
@@ -57,9 +57,9 @@ def test_ensure_model_redownloads_corrupted_existing_file(
     def fake_download(_url: str, filename: str | Path) -> None:
         download_path = Path(filename)
         downloads.append(download_path)
-        download_path.write_bytes(replacement_content)
+        _ = download_path.write_bytes(replacement_content)
 
-    monkeypatch.setattr(synth.urllib.request, "urlretrieve", fake_download)
+    monkeypatch.setattr("readback.synth.urllib.request.urlretrieve", fake_download)
 
     assert synth.ensure_model() == (model_path, voices_path)
     assert model_path.read_bytes() == replacement_content
@@ -77,12 +77,12 @@ def test_ensure_model_rejects_download_with_wrong_checksum(
     monkeypatch.setattr(synth, "_MODEL_SHA256", _sha256(b"expected model"))
 
     def fake_download(_url: str, filename: str | Path) -> None:
-        Path(filename).write_bytes(b"wrong model")
+        _ = Path(filename).write_bytes(b"wrong model")
 
-    monkeypatch.setattr(synth.urllib.request, "urlretrieve", fake_download)
+    monkeypatch.setattr("readback.synth.urllib.request.urlretrieve", fake_download)
 
     with pytest.raises(click.ClickException, match="failed checksum verification"):
-        synth.ensure_model()
+        _ = synth.ensure_model()
 
     assert not model_path.exists()
     assert list(model_path.parent.glob("*.download")) == []
@@ -97,9 +97,9 @@ def test_ensure_model_wraps_download_failures(
     def fail_download(_url: str, _filename: str | Path) -> None:
         raise urllib.error.URLError("network unavailable")
 
-    monkeypatch.setattr(synth.urllib.request, "urlretrieve", fail_download)
+    monkeypatch.setattr("readback.synth.urllib.request.urlretrieve", fail_download)
 
     with pytest.raises(click.ClickException, match="Failed to download model file"):
-        synth.ensure_model()
+        _ = synth.ensure_model()
 
     assert not model_path.exists()

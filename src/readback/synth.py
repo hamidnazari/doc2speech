@@ -73,13 +73,14 @@ def _download_model_file(model_file: _ModelFile) -> None:
 
     temp_path = Path(temp_name)
     try:
-        urllib.request.urlretrieve(model_file.url, temp_path)
+        _ = urllib.request.urlretrieve(model_file.url, temp_path)
         actual_sha256 = _sha256(temp_path)
         if actual_sha256 != model_file.sha256:
-            raise click.ClickException(
+            message = (
                 f"Downloaded model file {path.name} failed checksum verification: "
                 f"expected {model_file.sha256}, got {actual_sha256}"
             )
+            raise click.ClickException(message)
         os.replace(temp_path, path)
     except click.ClickException:
         raise
