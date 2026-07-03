@@ -1,7 +1,7 @@
 default:
     @just --list
 
-# Install doc2speech as a global uv tool
+# Install readback as a global uv tool
 [group('run')]
 install:
     uv tool install . --force
@@ -9,12 +9,12 @@ install:
 # Convert a file to a WAV output file
 [group('run')]
 speak file output voice="af_heart" speed="1.0":
-    uv run doc2speech "{{file}}" -o "{{output}}" --voice "{{voice}}" --speed "{{speed}}"
+    uv run readback "{{file}}" -o "{{output}}" --voice "{{voice}}" --speed "{{speed}}"
 
 # Stream a file to ffplay (starts playing before synthesis completes)
 [group('run')]
 play file voice="af_heart" speed="1.0":
-    uv run doc2speech "{{file}}" --play --voice "{{voice}}" --speed "{{speed}}"
+    uv run readback "{{file}}" --play --voice "{{voice}}" --speed "{{speed}}"
 
 # Run the test suite
 [group('dev')]

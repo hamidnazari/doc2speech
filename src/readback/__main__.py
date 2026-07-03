@@ -28,7 +28,7 @@ _VOICES = [
 
 
 @click.command()
-@click.version_option(package_name="doc2speech")
+@click.version_option(package_name="readback")
 @click.argument("input_file", default="-", metavar="FILE")
 @click.option(
     "-o", "--output", "output_path", default=None, metavar="FILE", help="Output WAV file."
@@ -68,9 +68,9 @@ def cli(
 
     Pass '-' or omit FILE to read from stdin.
     """
-    from doc2speech.text import load, strip_markdown
+    from readback.text import load, strip_markdown
 
-    console.print(f"[bold cyan]doc2speech[/] loading {input_file!r}…")
+    console.print(f"[bold cyan]readback[/] loading {input_file!r}…")
     raw = load(input_file)
 
     text = raw if no_strip_markdown else strip_markdown(raw)
@@ -94,7 +94,7 @@ def cli(
         raise
     except ImportError as e:
         console.print(f"[red]Missing dependency:[/] {e}")
-        console.print("[dim]Install with: uv tool install 'doc2speech[play]'[/dim]")
+        console.print("[dim]Install with: uv tool install .  # or: python -m pip install .[/dim]")
         raise SystemExit(1) from e
     except Exception as e:
         console.print(f"[red]Error:[/] {e}")
@@ -205,7 +205,7 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
 
     import sounddevice as sd
 
-    from doc2speech.synth import SAMPLE_RATE, synthesise_stream
+    from readback.synth import SAMPLE_RATE, synthesise_stream
 
     player = _Player(seek_samples=5 * SAMPLE_RATE)
     done = threading.Event()
@@ -283,7 +283,7 @@ def _play_stream(text: str, voice: str, speed: float) -> None:
 def _write_file(text: str, voice: str, speed: float, output_path: str) -> None:
     import soundfile as sf
 
-    from doc2speech.synth import SAMPLE_RATE, synthesise
+    from readback.synth import SAMPLE_RATE, synthesise
 
     console.print("[dim]Synthesising…[/]")
     samples = synthesise(text, voice=voice, speed=speed)
@@ -296,7 +296,7 @@ def _write_stdout(text: str, voice: str, speed: float) -> None:
 
     import soundfile as sf
 
-    from doc2speech.synth import SAMPLE_RATE, synthesise
+    from readback.synth import SAMPLE_RATE, synthesise
 
     console.print("[dim]Synthesising…[/]")
     samples = synthesise(text, voice=voice, speed=speed)

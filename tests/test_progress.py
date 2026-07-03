@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from doc2speech.__main__ import _fmt_time, _render_bar  # pyright: ignore[reportPrivateUsage]
+from readback.__main__ import _fmt_time, _render_bar  # pyright: ignore[reportPrivateUsage]
 
 SR = 24_000  # matches SAMPLE_RATE
 

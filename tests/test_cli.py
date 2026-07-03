@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from doc2speech.__main__ import cli
+from readback.__main__ import cli
 
 
 def test_missing_file_gives_clean_error() -> None:

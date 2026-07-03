@@ -5,7 +5,7 @@ import threading
 import numpy as np
 import pytest
 
-from doc2speech.__main__ import _Player  # pyright: ignore[reportPrivateUsage]
+from readback.__main__ import _Player  # pyright: ignore[reportPrivateUsage]
 
 SEEK = 100
 

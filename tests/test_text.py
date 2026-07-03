@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from doc2speech.text import load, split_sentences, strip_markdown
+from readback.text import load, split_sentences, strip_markdown
 
 
 def test_strips_headings() -> None:

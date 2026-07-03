@@ -46,7 +46,7 @@ async def synthesise_stream(
     """Yield (chunk, sample_rate) as each phoneme batch is synthesised."""
     from kokoro_onnx import Kokoro
 
-    from doc2speech.text import split_sentences
+    from readback.text import split_sentences
 
     model_path, voices_path = ensure_model()
     kokoro = Kokoro(str(model_path), str(voices_path))

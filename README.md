@@ -1,4 +1,4 @@
-# doc2speech
+# readback
 
 Convert text or Markdown documents to speech using [Kokoro ONNX](https://github.com/thewh1teagle/kokoro-onnx) — a lightweight, offline TTS engine.
 
@@ -15,18 +15,24 @@ Convert text or Markdown documents to speech using [Kokoro ONNX](https://github.
 
 ```sh
 # Install as a global uv tool
-just install
+uv tool install .
 
 # Or run directly without installing
-uv run doc2speech --help
+uv run readback --help
 ```
 
-Requires Python ≥ 3.12 and [uv](https://docs.astral.sh/uv/).
+Requires Python ≥ 3.12. If you do not use [uv](https://docs.astral.sh/uv/), install with pipx or pip:
+
+```sh
+pipx install .
+python -m pip install .
+python -m readback --help
+```
 
 ## Usage
 
 ```
-doc2speech [OPTIONS] [FILE]
+readback [OPTIONS] [FILE]
 ```
 
 `FILE` defaults to `-` (stdin).
@@ -52,16 +58,16 @@ doc2speech [OPTIONS] [FILE]
 
 ```sh
 # Play a Markdown file aloud
-doc2speech README.md --play
+readback README.md --play
 
 # Save to WAV
-doc2speech notes.md -o notes.wav
+readback notes.md -o notes.wav
 
 # Read from stdin, pipe to ffplay
-echo "Hello, world." | doc2speech | ffplay -i -
+echo "Hello, world." | readback | ffplay -i -
 
 # Change voice and speed
-doc2speech article.md --play --voice bm_george --speed 1.2
+readback article.md --play --voice bm_george --speed 1.2
 ```
 
 ## Voices
