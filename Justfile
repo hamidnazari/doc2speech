@@ -19,7 +19,7 @@ play file voice="af_heart" speed="1.0":
 # Run the test suite
 [group('dev')]
 test *args:
-    uv run pytest {{args}}
+    uv run python -m pytest {{args}}
 
 # Lint with ruff
 [group('dev')]
@@ -29,7 +29,7 @@ lint:
 # Type-check with basedpyright
 [group('dev')]
 typecheck:
-    uv run basedpyright
+    uv run python -m basedpyright
 
 # Format with ruff
 [group('dev')]
