@@ -6,7 +6,7 @@ Convert text or Markdown documents to speech using [Kokoro ONNX](https://github.
 
 - Reads plain text or Markdown files (strips formatting automatically)
 - Streams audio to your speakers as synthesis proceeds, or saves to WAV
-- Interactive playback controls: pause/resume, seek ±5 s, quit
+- Interactive playback controls: pause/resume, seek ±5 s, speed up/down, quit
 - Pipes cleanly — write WAV bytes to stdout for use with `ffplay`, `sox`, etc.
 - 11 built-in voices (American and British English)
 - Model files downloaded automatically on first use (~`~/.cache/kokoro/`)
@@ -42,7 +42,7 @@ readback [OPTIONS] [FILE]
 | `-o FILE` / `--output FILE` | — | Save audio to a WAV file |
 | `--play` | off | Stream to default audio device |
 | `--voice VOICE` | `af_heart` | Kokoro voice ID (see below) |
-| `--speed FLOAT` | `1.0` | Speech speed multiplier |
+| `--speed FLOAT` | `1.0` | Speech speed multiplier (`0.25` to `4.0`) |
 | `--no-strip-markdown` | off | Pass raw text without stripping Markdown |
 
 ### Playback controls (interactive mode)
@@ -52,7 +52,30 @@ readback [OPTIONS] [FILE]
 | `Space` | Pause / resume |
 | `→` | Seek forward 5 s |
 | `←` | Seek backward 5 s |
+| `↑` | Speed up playback |
+| `↓` | Slow down playback |
 | `q` / `Ctrl-C` | Quit |
+
+## Configuration
+
+`readback` loads user defaults from:
+
+```text
+~/.config/readback/config.toml
+```
+
+Command-line options override config values. Missing config files are ignored.
+
+Supported keys:
+
+```toml
+voice = "af_heart"
+speed = 1.0
+play = false
+strip_markdown = true
+```
+
+`speed` must be between `0.25` and `4.0`. `voice` must be one of the built-in voice IDs below.
 
 ### Examples
 

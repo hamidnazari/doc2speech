@@ -5,14 +5,14 @@ import threading
 import numpy as np
 import pytest
 
-from readback.__main__ import _Player  # pyright: ignore[reportPrivateUsage]
+from readback.playback import Player, handle_key
 
 SEEK = 100
 
 
-def _make(samples: list[int]) -> _Player:
-    """Return a _Player pre-loaded with chunks of the given lengths (values = index)."""
-    p = _Player(seek_samples=SEEK)
+def _make(samples: list[int]) -> Player:
+    """Return a Player pre-loaded with chunks of the given lengths (values = index)."""
+    p = Player(seek_samples=SEEK)
     for i, n in enumerate(samples):
         p.push(np.full(n, float(i), dtype="float32"))
     return p
@@ -25,12 +25,12 @@ def _all(arr: np.ndarray, val: float) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# _Player.total
+# Player.total
 # ---------------------------------------------------------------------------
 
 
 def test_total_empty() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     assert p.total() == 0
 
 
@@ -45,7 +45,7 @@ def test_total_multiple_chunks() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _Player.read
+# Player.read
 # ---------------------------------------------------------------------------
 
 
@@ -63,7 +63,7 @@ def test_read_partial_start() -> None:
 
 
 def test_read_across_chunk_boundary() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     p.push(np.ones(5, dtype="float32"))
     p.push(np.full(5, 2.0, dtype="float32"))
     out = p.read(3, 6)
@@ -84,7 +84,7 @@ def test_read_entirely_before_start_returns_zeros() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _Player.seek
+# Player.seek
 # ---------------------------------------------------------------------------
 
 
@@ -117,7 +117,7 @@ def test_seek_clamps_to_total() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _Player.callback
+# Player.callback
 # ---------------------------------------------------------------------------
 
 
@@ -126,7 +126,7 @@ def _outdata(frames: int) -> np.ndarray:
 
 
 def test_callback_outputs_audio() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     p.push(np.ones(64, dtype="float32"))
     out = _outdata(16)
     p.callback(out, 16, None, None)
@@ -135,7 +135,7 @@ def test_callback_outputs_audio() -> None:
 
 
 def test_callback_paused_outputs_silence() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     p.push(np.ones(64, dtype="float32"))
     p.paused.set()
     out = _outdata(16)
@@ -156,7 +156,7 @@ def test_callback_stopped_raises() -> None:
 
 
 def test_callback_underrun_outputs_silence() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     # no chunks pushed yet, synthesis not done → underrun
     out = _outdata(16)
     out[:] = 9.0
@@ -177,13 +177,39 @@ def test_callback_end_of_stream_raises() -> None:
 
 
 def test_callback_advances_playhead_correctly() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     p.push(np.arange(64, dtype="float32"))
     out = _outdata(16)
     p.callback(out, 16, None, None)
     assert p.playhead == 16
     p.callback(out, 16, None, None)
     assert p.playhead == 32
+
+
+def test_callback_honors_playback_speed() -> None:
+    p = Player(seek_samples=SEEK, playback_speed=2.0)
+    p.push(np.arange(64, dtype="float32"))
+    out = _outdata(4)
+    p.callback(out, 4, None, None)
+    assert out[:, 0].tolist() == [0.0, 2.0, 4.0, 6.0]
+    assert p.playhead == 8
+
+
+def test_change_speed_clamps() -> None:
+    p = Player(seek_samples=SEEK, playback_speed=0.25)
+    assert p.change_speed(-0.1) == 0.25
+    p = Player(seek_samples=SEEK, playback_speed=4.0)
+    assert p.change_speed(+0.1) == 4.0
+
+
+def test_arrow_up_down_change_speed() -> None:
+    p = Player(seek_samples=SEEK, playback_speed=1.0)
+    keys = iter(["[", "A"])
+    assert handle_key(p, "\x1b", lambda: next(keys)) == "speed"
+    assert p.playback_speed == 1.1
+    keys = iter(["[", "B"])
+    assert handle_key(p, "\x1b", lambda: next(keys)) == "speed"
+    assert p.playback_speed == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +232,7 @@ def test_pause_then_resume() -> None:
 
 
 def test_push_concurrent_with_read() -> None:
-    p = _Player(seek_samples=SEEK)
+    p = Player(seek_samples=SEEK)
     p.push(np.ones(1000, dtype="float32"))
     errors: list[Exception] = []
 
